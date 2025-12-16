@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluación: {{ tema }} - Sistema de Evaluaciones{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <h2 class="text-center mb-4">Evaluación: {{ tema }}</h2>
+        
+        <form method="POST" action="{{ url_for('guardar_evaluacion') }}" id="evaluacionForm">
+            {% for pregunta in preguntas %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Pregunta {{ loop.index }}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text"><strong>{{ pregunta.detalle }}</strong></p>
+                    
+                    {% for respuesta in pregunta.respuestas %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" 
+                               name="pregunta_{{ pregunta.id }}" 
+                               id="respuesta_{{ respuesta[0] }}" 
+                               value="{{ respuesta[0] }}">
+                        <label class="form-check-label" for="respuesta_{{ respuesta[0] }}">
+                            {{ respuesta[1] }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="mt-3">
+                        <label for="detalle_{{ pregunta.id }}" class="form-label">
+                            <small>Comentarios adicionales (opcional):</small>
+                        </label>
+                        <textarea class="form-control" 
+                                  id="detalle_{{ pregunta.id }}" 
+                                  name="detalle_{{ pregunta.id }}" 
+                                  rows="2" 
+                                  placeholder="Agrega cualquier comentario o aclaración..."></textarea>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div class="text-center mt-4 mb-4">
+                <a href="{{ url_for('menu') }}" class="btn btn-secondary me-3">Volver al Menú</a>
+                <button type="submit" class="btn btn-success btn-lg">Finalizar Evaluación</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.getElementById('evaluacionForm').addEventListener('submit', function(e) {
+    const radios = document.querySelectorAll('input[type="radio"]');
+    const preguntas = new Set();
+    const preguntasRespondidas = new Set();
+    
+    radios.forEach(radio => {
+        const preguntaId = radio.name.split('_')[1];
+        preguntas.add(preguntaId);
+        if (radio.checked) {
+            preguntasRespondidas.add(preguntaId);
+        }
+    });
+    
+    const sinResponder = preguntas.size - preguntasRespondidas.size;
+    
+    if (sinResponder > 0) {
+        if (!confirm(`Tienes ${sinResponder} pregunta(s) sin responder. ¿Estás seguro de que deseas continuar?`)) {
+            e.preventDefault();
+        }
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

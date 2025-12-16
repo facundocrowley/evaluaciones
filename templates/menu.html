@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Menú Principal - Sistema de Evaluaciones{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h2 class="text-center mb-4">Temas de Evaluación Disponibles</h2>
+        
+        {% if temas %}
+            <div class="row">
+                {% for tema in temas %}
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ tema.descripcion }}</h5>
+                            
+                            {% if tema.ya_realizo %}
+                                <div class="alert alert-success p-2 mb-2">
+                                    <small><i class="bi bi-check-circle"></i> <strong>Evaluación completada</strong></small>
+                                </div>
+                                <p class="card-text text-muted">Ya has realizado esta evaluación anteriormente.</p>
+                                <button class="btn btn-secondary" disabled>
+                                    <i class="bi bi-check"></i> Evaluación Completada
+                                </button>
+                            {% elif not tema.habilitado %}
+                                <div class="alert alert-warning p-2 mb-2">
+                                    <small><i class="bi bi-lock"></i> <strong>Acceso restringido</strong></small>
+                                </div>
+                                <p class="card-text text-muted">No tienes permisos para acceder a esta evaluación.</p>
+                                <button class="btn btn-outline-secondary" disabled>
+                                    <i class="bi bi-lock"></i> Sin Permisos
+                                </button>
+                            {% else %}
+                                <div class="alert alert-info p-2 mb-2">
+                                    <small><i class="bi bi-play-circle"></i> <strong>Disponible para realizar</strong></small>
+                                </div>
+                                <p class="card-text">Haz clic para comenzar la evaluación de este tema.</p>
+                                <a href="{{ url_for('evaluacion', tema_id=tema.codigo) }}" class="btn btn-primary">
+                                    <i class="bi bi-play"></i> Comenzar Evaluación
+                                </a>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Footer con información adicional -->
+                        <div class="card-footer">
+                            <small class="text-muted">
+                                
+                                Estado: 
+                                {% if tema.ya_realizo %}
+                                    <span class="badge bg-success">Completada</span>
+                                {% elif not tema.habilitado %}
+                                    <span class="badge bg-warning">Sin acceso</span>
+                                {% else %}
+                                    <span class="badge bg-primary">Disponible</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Información adicional -->
+            <div class="alert alert-info mt-4">
+                <h6><i class="bi bi-info-circle"></i> Información importante:</h6>
+                <ul class="mb-0">
+                    <li><strong>Disponible:</strong> Puedes realizar esta evaluación</li>
+                    <li><strong>Sin acceso:</strong> No tienes permisos para este tema</li>
+                    <li><strong>Completada:</strong> Ya realizaste esta evaluación (no se puede repetir)</li>
+                </ul>
+            </div>
+        {% else %}
+            <div class="alert alert-warning text-center">
+                <h4>No hay temas de evaluación disponibles</h4>
+                <p>Contacta al administrador para que te asigne temas de evaluación.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+// Agregar tooltips para mejor experiencia de usuario
+document.addEventListener('DOMContentLoaded', function() {
+    // Efecto hover en cards
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            if (!this.querySelector('.btn[disabled]')) {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                this.style.transition = 'all 0.3s ease';
+            }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '';
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

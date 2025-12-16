@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Preguntas - Admin{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Gestión de Preguntas</h2>
+            <div>
+                <a href="{{ url_for('admin_nueva_pregunta') }}" class="btn btn-success me-2">
+                    <i class="bi bi-plus-circle"></i> Nueva Pregunta
+                </a>
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Volver al Panel</a>
+                <span class="badge bg-warning text-dark ms-2">Administrador</span>
+            </div>
+        </div>
+
+        {% if preguntas %}
+            <div class="card">
+                <div class="card-header">
+                    <h5>Lista de Preguntas por Tema</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tema</th>
+                                    <th>Pregunta</th>
+                                    <th class="text-center">Respuestas</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pregunta in preguntas %}
+                                <tr>
+                                    <td><span class="badge bg-primary">{{ pregunta[0] }}</span></td>
+                                    <td><small class="text-muted">{{ pregunta[2] }}</small></td>
+                                    <td>
+                                        <strong>{{ pregunta[1][:100] }}</strong>
+                                        {% if pregunta[1]|length > 100 %}...{% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">{{ pregunta[4] }} opciones</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('admin_respuestas_pregunta', pregunta_id=pregunta[0]) }}" 
+                                               class="btn btn-primary btn-sm" title="Gestionar Respuestas">
+                                                <i class="bi bi-list-ul"></i>
+                                            </a>
+                                            <a href="{{ url_for('admin_editar_pregunta', pregunta_id=pregunta[0]) }}" 
+                                               class="btn btn-warning btn-sm" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-danger btn-sm" 
+                                                    onclick="eliminarPregunta({{ pregunta[0] }})" title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-warning text-center">
+                <h4>No hay preguntas registradas</h4>
+                <p>Comienza creando tu primera pregunta.</p>
+                <a href="{{ url_for('admin_nueva_pregunta') }}" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Crear Primera Pregunta
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>¿Estás seguro de eliminar esta pregunta?</strong></p>
+                <p class="text-danger">Esta acción eliminará:</p>
+                <ul>
+                    <li>La pregunta completa</li>
+                    <li>Todas sus opciones de respuesta</li>
+                    <li>Todas las respuestas de usuarios relacionadas</li>
+                </ul>
+                <p><strong>Esta operación no se puede deshacer.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminar" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Eliminar Definitivamente</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function eliminarPregunta(preguntaId) {
+    const modal = new bootstrap.Modal(document.getElementById('modalEliminar'));
+    const form = document.getElementById('formEliminar');
+    form.action = `/admin_eliminar_pregunta/${preguntaId}`;
+    modal.show();
+}
+</script>
+{% endblock %}
+{% endblock %}

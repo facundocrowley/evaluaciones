@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Acceso Administrador - Sistema de Evaluaciones{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-header text-center bg-warning">
+                <h4>Acceso Administrador</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="pin" class="form-label">PIN de Administrador:</label>
+                        <input type="password" class="form-control" id="pin" name="pin" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-warning">Acceder</button>
+                    </div>
+                </form>
+                <hr>
+                <div class="text-center">
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-sm">Volver al Login Normal</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

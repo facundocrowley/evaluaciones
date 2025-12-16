@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Respuestas - Admin{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Gestión de Respuestas</h2>
+                <p class="text-muted mb-0">Tema: {{ pregunta[2] }}</p>
+                <small class="text-muted">Pregunta ID: {{ pregunta[0] }}</small>
+            </div>
+            <div>
+                <a href="{{ url_for('admin_preguntas') }}" class="btn btn-secondary">Volver a Preguntas</a>
+                <span class="badge bg-warning text-dark ms-2">Administrador</span>
+            </div>
+        </div>
+
+        <!-- Mostrar la pregunta -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Pregunta</h5>
+            </div>
+            <div class="card-body">
+                <h6>{{ pregunta[1] }}</h6>
+            </div>
+        </div>
+
+        <!-- Formulario para agregar nueva respuesta -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-plus-circle"></i> Agregar Nueva Opción de Respuesta</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin_nueva_respuesta', pregunta_id=pregunta[0]) }}">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" name="respuesta" 
+                                   placeholder="Escribe el texto de la nueva opción de respuesta..." required>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="es_correcta" name="es_correcta">
+                                <label class="form-check-label" for="es_correcta">
+                                    Es correcta
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-plus"></i> Agregar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de respuestas existentes -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Opciones de Respuesta Existentes</h5>
+                <small class="text-muted">La respuesta con mayor orden es la correcta</small>
+            </div>
+            <div class="card-body">
+                {% if respuestas %}
+                    {% set max_orden = respuestas | map(attribute=2) | max %}
+                    {% for respuesta in respuestas %}
+                    <div class="card mb-3 {% if respuesta[2] == max_orden %}border-success{% endif %}">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-1">
+                                    <span class="badge {% if respuesta[2] == max_orden %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {{ respuesta[2] }}
+                                    </span>
+                                </div>
+                                <div class="col-md-6">
+                                    <form method="POST" action="{{ url_for('admin_editar_respuesta', respuesta_id=respuesta[0]) }}" 
+                                          id="form_{{ respuesta[0] }}">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" name="respuesta" 
+                                                   value="{{ respuesta[1] }}" id="input_{{ respuesta[0] }}">
+                                            <div class="input-group-text">
+                                                <input class="form-check-input mt-0" type="checkbox" 
+                                                       name="es_correcta" {% if respuesta[2] == max_orden %}checked{% endif %}
+                                                       id="check_{{ respuesta[0] }}">
+                                                <label class="form-check-label ms-1" for="check_{{ respuesta[0] }}">
+                                                    Correcta
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="col-md-2">
+                                    {% if respuesta[2] == max_orden %}
+                                        <span class="badge bg-success">CORRECTA</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Incorrecta</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="btn-group w-100" role="group">
+                                        <button type="button" class="btn btn-warning btn-sm" 
+                                                onclick="actualizarRespuesta({{ respuesta[0] }})">
+                                            <i class="bi bi-check"></i> Guardar
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm" 
+                                                onclick="eliminarRespuesta({{ respuesta[0] }})">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-warning text-center">
+                        <h6>No hay opciones de respuesta</h6>
+                        <p class="mb-0">Agrega al menos 2 opciones de respuesta para que la pregunta sea funcional.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if respuestas %}
+        <div class="alert alert-info mt-3">
+            <h6><i class="bi bi-info-circle"></i> Información sobre el sistema de respuestas:</h6>
+            <ul class="mb-0">
+                <li><strong>Orden:</strong> El número indica el orden de la respuesta (mayor orden = respuesta correcta)</li>
+                <li><strong>Respuesta Correcta:</strong> Solo puede haber una respuesta correcta por pregunta</li>
+                <li><strong>Visualización:</strong> En el examen, las opciones se muestran en orden aleatorio</li>
+                <li><strong>Mínimo:</strong> Se recomiendan al menos 2 opciones por pregunta</li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar respuesta -->
+<div class="modal fade" id="modalEliminarRespuesta" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>¿Estás seguro de eliminar esta opción de respuesta?</strong></p>
+                <p class="text-danger">Esta acción también eliminará todas las respuestas de usuarios relacionadas con esta opción.</p>
+                <p><strong>Esta operación no se puede deshacer.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formEliminarRespuesta" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+function actualizarRespuesta(respuestaId) {
+    document.getElementById(`form_${respuestaId}`).submit();
+}
+
+function eliminarRespuesta(respuestaId) {
+    const modal = new bootstrap.Modal(document.getElementById('modalEliminarRespuesta'));
+    const form = document.getElementById('formEliminarRespuesta');
+    form.action = `/admin_eliminar_respuesta/${respuestaId}`;
+    modal.show();
+}
+
+// Auto-guardar cuando se cambia el checkbox de "correcta"
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][name="es_correcta"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const respuestaId = this.id.replace('check_', '');
+            
+            // Si se marca como correcta, desmarcar todas las demás
+            if (this.checked) {
+                checkboxes.forEach(otherCheckbox => {
+                    if (otherCheckbox !== this) {
+                        otherCheckbox.checked = false;
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

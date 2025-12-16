@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Pregunta - Admin{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Editar Pregunta</h2>
+            <div>
+                <a href="{{ url_for('admin_preguntas') }}" class="btn btn-secondary">Volver a Preguntas</a>
+                <span class="badge bg-warning text-dark ms-2">Administrador</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5>Modificar Datos de la Pregunta</h5>
+                <small class="text-muted">ID: {{ pregunta[0] }}</small>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="tema" class="form-label">Tema:</label>
+                        <select class="form-select" id="tema" name="tema" required>
+                            {% for tema in temas %}
+                            <option value="{{ tema[0] }}" {% if tema[0] == pregunta[1] %}selected{% endif %}>
+                                {{ tema[1] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="detalle" class="form-label">Texto de la Pregunta:</label>
+                        <textarea class="form-control" id="detalle" name="detalle" rows="4" required>{{ pregunta[2] }}</textarea>
+                        <div class="form-text">Modifica el texto de la pregunta según sea necesario.</div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-exclamation-triangle"></i> Nota:</h6>
+                        <p class="mb-0">Para gestionar las opciones de respuesta de esta pregunta, usa el botón "Gestionar Respuestas" desde la lista principal de preguntas.</p>
+                    </div>
+
+                    <div class="text-center">
+                        <a href="{{ url_for('admin_preguntas') }}" class="btn btn-secondary me-3">Cancelar</a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-pencil"></i> Actualizar Pregunta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

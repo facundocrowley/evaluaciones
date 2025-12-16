@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Respuestas de {{ evaluacion[1] if evaluacion else 'Usuario' }} - Admin{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Respuestas de la Evaluación</h2>
+                {% if evaluacion %}
+                <p class="mb-0"><strong>Usuario:</strong> {{ evaluacion[1] }} | <strong>Tema:</strong> {{ evaluacion[2] }}</p>
+                <small class="text-muted">Evaluación ID: {{ evaluacion[0] }} | Fecha: {{ evaluacion[3].strftime('%d/%m/%Y %H:%M') if evaluacion[3] else 'N/A' }}</small>
+                <p class="mt-2">
+                    <span class="badge bg-info">Calificación: {{ evaluacion[4] }}</span>
+                    <span class="badge {% if evaluacion[4] >= evaluacion[5] %}bg-success{% else %}bg-danger{% endif %}">
+                        {% if evaluacion[4] >= evaluacion[5] %}Aprobado{% else %}Reprobado{% endif %} (Mín: {{ evaluacion[5] }})
+                    </span>
+                </p>
+                {% endif %}
+            </div>
+            <div>
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Volver al Panel</a>
+                <span class="badge bg-warning text-dark ms-2">Administrador</span>
+            </div>
+        </div>
+
+        <!-- Mostrar observación actual si existe -->
+        {% if evaluacion and evaluacion[6] %}
+        <div class="alert alert-info mb-4">
+            <h6><i class="bi bi-chat-text"></i> Observación del Administrador:</h6>
+            <p class="mb-0">{{ evaluacion[6] }}</p>
+        </div>
+        {% endif %}
+        
+        {% if respuestas %}
+            {% for respuesta in respuestas %}
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1">{{ respuesta[1] }}</h5>
+                        <small class="text-muted">ID Respuesta: {{ respuesta[0] }} | Pregunta ID: {{ respuesta[4] }}</small>
+                    </div>
+                    <div>
+                        {% if respuesta[2] == 'RESPUESTA INVÁLIDA' %}
+                            <span class="badge bg-danger">RESPUESTA INVÁLIDA</span>
+                        {% elif respuesta[6] and respuesta[6] == respuesta[5] %}
+                            <span class="badge bg-success">Correcta</span>
+                        {% else %}
+                            <span class="badge bg-danger">Incorrecta</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p><strong>Respuesta elegida:</strong> 
+                                {% if respuesta[2] == 'RESPUESTA INVÁLIDA' %}
+                                    <span class="text-danger">{{ respuesta[2] }}</span>
+                                {% else %}
+                                    {{ respuesta[2] if respuesta[2] else 'Sin respuesta' }}
+                                {% endif %}
+                            </p>
+                            {% if respuesta[3] %}
+                                <p><strong>Comentarios del usuario:</strong></p>
+                                <div class="bg-light p-2 rounded">{{ respuesta[3] }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            {% if respuesta[2] != 'RESPUESTA INVÁLIDA' %}
+                                <form method="POST" action="{{ url_for('admin_cambiar_respuesta') }}" class="d-inline">
+                                    <input type="hidden" name="respuesta_id" value="{{ respuesta[0] }}">
+                                    {% if respuesta[6] and respuesta[6] == respuesta[5] %}
+                                        <button type="submit" name="accion" value="incorrecta" 
+                                                class="btn btn-warning btn-sm w-100 mb-2"
+                                                onclick="return confirm('¿Marcar esta respuesta como INCORRECTA?')">
+                                            Marcar como Incorrecta
+                                        </button>
+                                    {% else %}
+                                        <button type="submit" name="accion" value="correcta" 
+                                                class="btn btn-success btn-sm w-100 mb-2"
+                                                onclick="return confirm('¿Marcar esta respuesta como CORRECTA?')">
+                                            Marcar como Correcta
+                                        </button>
+                                    {% endif %}
+                                </form>
+                            {% else %}
+                                <div class="alert alert-warning p-2">
+                                    <small><strong>Respuesta inválida</strong><br>
+                                    El usuario no seleccionó ninguna opción para esta pregunta.</small>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="small text-muted">
+                                {% if respuesta[2] != 'RESPUESTA INVÁLIDA' %}
+                                    <p class="mb-1"><strong>Orden elegido:</strong> {{ respuesta[6] if respuesta[6] else 'N/A' }}</p>
+                                    <p class="mb-0"><strong>Orden correcto:</strong> {{ respuesta[5] }}</p>
+                                {% else %}
+                                    <p class="mb-1"><strong>Estado:</strong> Sin respuesta</p>
+                                    <p class="mb-0"><strong>Valor BD:</strong> 0</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Sección de observación editable -->
+            {% if evaluacion %}
+            <div class="card mt-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-chat-text"></i> Observación del Administrador</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin_actualizar_observacion') }}">
+                        <input type="hidden" name="evaluacion_id" value="{{ evaluacion[0] }}">
+                        <div class="mb-3">
+                            <label for="observacion" class="form-label">Observación:</label>
+                            <textarea class="form-control" id="observacion" name="observacion" rows="4" 
+                                      placeholder="Escriba aquí sus observaciones sobre la evaluación del usuario...">{{ evaluacion[6] if evaluacion[6] else '' }}</textarea>
+                            <div class="form-text">
+                                Use este espacio para agregar comentarios sobre el desempeño del usuario, 
+                                áreas de mejora, felicitaciones, etc.
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Guardar Observación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-warning text-center">
+                <h4>No se encontraron respuestas</h4>
+                <p>Esta evaluación no tiene respuestas registradas o no se pudieron cargar los datos.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+// Agregar confirmación para los cambios de respuesta
+document.querySelectorAll('form[action*="admin_cambiar_respuesta"]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        const accion = e.submitter.value;
+        const mensaje = accion === 'correcta' ? 
+            '¿Estás seguro de marcar esta respuesta como CORRECTA?' : 
+            '¿Estás seguro de marcar esta respuesta como INCORRECTA?';
+        
+        if (!confirm(mensaje)) {
+            e.preventDefault();
+        }
+    });
+});
+
+// Auto-resize del textarea de observación
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('observacion');
+    if (textarea) {
+        function autoResize() {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.max(textarea.scrollHeight, 100) + 'px';
+        }
+        
+        textarea.addEventListener('input', autoResize);
+        autoResize(); // Resize inicial
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
