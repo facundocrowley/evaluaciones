@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Respuestas - Sistema de Evaluaciones{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-file-text"></i> Mis Respuestas</h2>
+            <a href="{{ url_for('perfil') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Volver a Mi Perfil
+            </a>
+        </div>
+
+        {% if evaluacion %}
+        <!-- Información de la evaluación -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información de la Evaluación</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <p><strong>Tema:</strong><br>{{ evaluacion[1] }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Fecha:</strong><br>{{ evaluacion[2].strftime('%d/%m/%Y %H:%M') if evaluacion[2] else 'N/A' }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Calificación:</strong><br>
+                            <span class="badge 
+                                {% if evaluacion[3]|float >= evaluacion[4]|float %}bg-success
+                                {% elif evaluacion[3]|float >= (evaluacion[4]|float * 0.6) %}bg-warning text-dark
+                                {% else %}bg-danger{% endif %}" style="font-size: 1.2em;">
+                                {{ "%.2f"|format(evaluacion[3]|float) }}
+                            </span>
+                            <span class="text-muted">(Mín: {{ "%.2f"|format(evaluacion[4]|float) }})</span>
+                        </p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Estado:</strong><br>
+                            {% if evaluacion[3]|float >= evaluacion[4]|float %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Aprobado</span>
+                            {% elif evaluacion[3]|float >= (evaluacion[4]|float * 0.6) %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Regular</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Reprobado</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% if evaluacion[5] %}
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <div class="alert alert-info mb-0">
+                            <strong><i class="bi bi-chat-left-text"></i> Observación del Evaluador:</strong><br>
+                            {{ evaluacion[5] }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Respuestas detalladas -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-list-check"></i> Respuestas Detalladas</h5>
+            </div>
+            <div class="card-body">
+                {% if respuestas %}
+                    {% for respuesta in respuestas %}
+                    <div class="card mb-3 {% if respuesta[3] == respuesta[4] %}border-success{% else %}border-danger{% endif %}">
+                        <div class="card-header {% if respuesta[3] == respuesta[4] %}bg-success bg-opacity-10{% else %}bg-danger bg-opacity-10{% endif %}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-question-circle"></i> Pregunta {{ loop.index }}
+                                </h6>
+                                <span class="badge {% if respuesta[3] == respuesta[4] %}bg-success{% else %}bg-danger{% endif %}">
+                                    {% if respuesta[3] == respuesta[4] %}
+                                        <i class="bi bi-check-circle"></i> Correcta
+                                    {% else %}
+                                        <i class="bi bi-x-circle"></i> Incorrecta
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3"><strong>{{ respuesta[0] }}</strong></p>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="alert {% if respuesta[3] == respuesta[4] %}alert-success{% else %}alert-danger{% endif %} mb-0">
+                                        <strong><i class="bi bi-cursor"></i> Tu respuesta:</strong><br>
+                                        {{ respuesta[1] if respuesta[1] else '<em class="text-muted">No respondida</em>' | safe }}
+                                    </div>
+                                </div>
+                                
+                                {% if respuesta[2] %}
+                                <div class="col-md-6">
+                                    <div class="alert alert-info mb-0">
+                                        <strong><i class="bi bi-chat-left-dots"></i> Tu comentario:</strong><br>
+                                        {{ respuesta[2] }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <!-- Resumen -->
+                    <div class="alert alert-primary mt-4">
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <h5>{{ respuestas|length }}</h5>
+                                <p class="mb-0">Total de Preguntas</p>
+                            </div>
+                            <div class="col-md-4">
+                                {% set correctas = respuestas|selectattr('3', 'eq', respuestas[0][3])|list|length if respuestas else 0 %}
+                                {% set correctas_reales = [] %}
+                                {% for r in respuestas %}
+                                    {% if r[3] == r[4] %}
+                                        {% set _ = correctas_reales.append(1) %}
+                                    {% endif %}
+                                {% endfor %}
+                                <h5 class="text-success">{{ correctas_reales|length }}</h5>
+                                <p class="mb-0">Respuestas Correctas</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h5 class="text-danger">{{ respuestas|length - correctas_reales|length }}</h5>
+                                <p class="mb-0">Respuestas Incorrectas</p>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning text-center">
+                        <h5>No hay respuestas registradas</h5>
+                        <p>No se encontraron respuestas para esta evaluación.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="alert alert-info mt-4">
+            <h6><i class="bi bi-info-circle"></i> Nota:</h6>
+            <p class="mb-0">
+                Estas son las respuestas que registraste durante tu evaluación. 
+                Esta información es de solo lectura y no puede ser modificada.
+            </p>
+        </div>
+        {% else %}
+            <div class="alert alert-danger text-center">
+                <h5>Evaluación no encontrada</h5>
+                <p>No se pudo cargar la información de esta evaluación.</p>
+                <a href="{{ url_for('perfil') }}" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> Volver a Mi Perfil
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

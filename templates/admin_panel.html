@@ -112,10 +112,10 @@
                                                 {% if evaluacion[6] >= evaluacion[7] %}bg-success
                                                 {% elif evaluacion[6] >= (evaluacion[7] * 0.6) %}bg-warning text-dark
                                                 {% else %}bg-danger{% endif %}">
-                                                {{ evaluacion[6] }}
+                                                {{ "%.2f"|format(evaluacion[6]) }}
                                             </span>
                                         </h5>
-                                        <small class="text-muted">Mín: {{ evaluacion[7] }}</small>
+                                        <small class="text-muted">Mín: {{ "%.2f"|format(evaluacion[7]) }}</small>
                                     </td>
                                     <td class="text-center">
                                         {% if evaluacion[6] >= evaluacion[7] %}

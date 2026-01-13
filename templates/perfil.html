@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Perfil - Sistema de Evaluaciones{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-person-circle"></i> Mi Perfil</h2>
+            <a href="{{ url_for('menu') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Volver al Menú
+            </a>
+        </div>
+
+        <!-- Información del usuario -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-person-badge"></i> Información del Usuario</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Usuario:</strong> {{ session.username }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Total de Evaluaciones:</strong> 
+                            <span class="badge bg-info">{{ evaluaciones|length }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen estadístico -->
+        {% if evaluaciones %}
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="text-primary">{{ evaluaciones|length }}</h3>
+                        <p class="text-muted mb-0">Evaluaciones Realizadas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        {% set aprobadas = namespace(count=0) %}
+                        {% for eval in evaluaciones %}
+                            {% if eval[3]|float >= eval[4]|float %}
+                                {% set aprobadas.count = aprobadas.count + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        <h3 class="text-success">{{ aprobadas.count }}</h3>
+                        <p class="text-muted mb-0">Aprobadas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        {% set promedio = ((evaluaciones|map(attribute=3)|map('float')|sum) / evaluaciones|length) %}
+                        <h3 class="{% if promedio >= 7 %}text-success{% elif promedio >= 4 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ "%.2f"|format(promedio) }}
+                        </h3>
+                        <p class="text-muted mb-0">Promedio General</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h3 class="text-info">{{ evaluaciones|map(attribute=1)|unique|list|length }}</h3>
+                        <p class="text-muted mb-0">Temas Evaluados</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Historial de evaluaciones -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Historial de Evaluaciones</h5>
+            </div>
+            <div class="card-body">
+                {% if evaluaciones %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tema</th>
+                                    <th class="text-center">Fecha</th>
+                                    <th class="text-center">Calificación</th>
+                                    <th class="text-center">Estado</th>
+                                    <th class="text-center">Respuestas</th>
+                                    <th>Observación</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for evaluacion in evaluaciones %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ evaluacion[1] }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <small>{{ evaluacion[2].strftime('%d/%m/%Y %H:%M') if evaluacion[2] else 'N/A' }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <h5>
+                                            <span class="badge 
+                                                {% if evaluacion[3]|float >= evaluacion[4]|float %}bg-success
+                                                {% elif evaluacion[3]|float >= (evaluacion[4]|float * 0.6) %}bg-warning text-dark
+                                                {% else %}bg-danger{% endif %}">
+                                                {{ "%.2f"|format(evaluacion[3]|float) }}
+                                            </span>
+                                        </h5>
+                                        <small class="text-muted">Mín: {{ "%.2f"|format(evaluacion[4]|float) }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if evaluacion[3]|float >= evaluacion[4]|float %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Aprobado
+                                            </span>
+                                        {% elif evaluacion[3]|float >= (evaluacion[4]|float * 0.6) %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-exclamation-triangle"></i> Regular
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle"></i> Reprobado
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success">{{ evaluacion[7] }}</span> / 
+                                        <span class="badge bg-info">{{ evaluacion[6] }}</span>
+                                        <br>
+                                        <small class="text-muted">Correctas / Total</small>
+                                    </td>
+                                    <td style="max-width: 200px;">
+                                        {% if evaluacion[5] %}
+                                            <small class="text-muted">{{ evaluacion[5] }}</small>
+                                        {% else %}
+                                            <small class="text-muted fst-italic">Sin observaciones</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{{ url_for('ver_mis_respuestas', evaluacion_id=evaluacion[0]) }}" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="bi bi-eye"></i> Ver Respuestas
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info text-center">
+                        <h5><i class="bi bi-info-circle"></i> No has realizado evaluaciones aún</h5>
+                        <p>Comienza realizando una evaluación desde el menú principal.</p>
+                        <a href="{{ url_for('menu') }}" class="btn btn-primary">
+                            <i class="bi bi-play-circle"></i> Ir al Menú
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        {% if evaluaciones %}
+        <div class="alert alert-info mt-4">
+            <h6><i class="bi bi-info-circle"></i> Información:</h6>
+            <ul class="mb-0">
+                <li><strong>Calificación:</strong> Se calcula como 10 × (Respuestas Correctas ÷ Total de Preguntas)</li>
+                <li><strong>Aprobado:</strong> Calificación igual o mayor a la nota mínima del tema</li>
+                <li><strong>Regular:</strong> Calificación entre 60% y 99% de la nota mínima</li>
+                <li><strong>Reprobado:</strong> Calificación menor al 60% de la nota mínima</li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

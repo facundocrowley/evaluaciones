@@ -5,7 +5,12 @@
 {% block content %}
 <div class="row">
     <div class="col-md-8 offset-md-2">
-        <h2 class="text-center mb-4">Temas de Evaluación Disponibles</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Temas de Evaluación Disponibles</h2>
+            <a href="{{ url_for('perfil') }}" class="btn btn-outline-primary">
+                <i class="bi bi-person-circle"></i> Mi Perfil
+            </a>
+        </div>
         
         {% if temas %}
             <div class="row">

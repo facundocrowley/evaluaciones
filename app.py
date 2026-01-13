@@ -77,6 +77,97 @@ def login():
     
     return render_template('login.html')
 
+@app.route('/perfil')
+def perfil():
+    """Perfil del usuario con sus evaluaciones"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    evaluaciones = []
+    
+    if conn:
+        try:
+            cursor = conn.cursor()
+            
+            # Obtener evaluaciones del usuario
+            cursor.execute("""
+                SELECT 
+                    e.Codigo,
+                    te.Descripcion as Tema,
+                    e.Fecha,
+                    e.Nota,
+                    e.NotaAprobado,
+                    e.Observacion,
+                    (SELECT COUNT(*) FROM Respuestas WHERE Evaluacion = e.Codigo) as TotalRespuestas,
+                    (SELECT COUNT(*) FROM Respuestas r 
+                     INNER JOIN PreguntasRespuestas pr ON r.Respuesta = pr.ID 
+                     WHERE r.Evaluacion = e.Codigo AND pr.orden = 
+                        (SELECT MAX(orden) FROM PreguntasRespuestas WHERE Pregunta = r.Pregunta)) as RespuestasCorrectas
+                FROM Evaluaciones e
+                INNER JOIN TemasEvaluaciones te ON e.Tema = te.Codigo
+                WHERE e.Usuario = ?
+                ORDER BY e.Fecha DESC
+            """, (session['user_id'],))
+            evaluaciones = cursor.fetchall()
+            
+        except Exception as e:
+            flash(f'Error cargando evaluaciones: {e}')
+        finally:
+            conn.close()
+    
+    return render_template('perfil.html', evaluaciones=evaluaciones)
+
+@app.route('/ver_mis_respuestas/<int:evaluacion_id>')
+def ver_mis_respuestas(evaluacion_id):
+    """Ver las respuestas propias de una evaluación"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    respuestas = []
+    evaluacion_info = None
+    
+    if conn:
+        try:
+            cursor = conn.cursor()
+            
+            # Verificar que la evaluación pertenece al usuario
+            cursor.execute("""
+                SELECT e.Codigo, te.Descripcion, e.Fecha, e.Nota, e.NotaAprobado, e.Observacion
+                FROM Evaluaciones e
+                INNER JOIN TemasEvaluaciones te ON e.Tema = te.Codigo
+                WHERE e.Codigo = ? AND e.Usuario = ?
+            """, (evaluacion_id, session['user_id']))
+            evaluacion_info = cursor.fetchone()
+            
+            if not evaluacion_info:
+                flash('No tienes acceso a esta evaluación')
+                return redirect(url_for('perfil'))
+            
+            # Obtener respuestas
+            cursor.execute("""
+                SELECT 
+                    p.Detalle as Pregunta,
+                    pr.Respuesta as OpcionElegida,
+                    r.Detalle as ComentarioUsuario,
+                    (SELECT MAX(orden) FROM PreguntasRespuestas WHERE Pregunta = p.ID) as OrdenCorrecto,
+                    pr.orden as OrdenElegido
+                FROM Respuestas r
+                INNER JOIN Preguntas p ON r.Pregunta = p.ID
+                LEFT JOIN PreguntasRespuestas pr ON r.Respuesta = pr.ID
+                WHERE r.Evaluacion = ?
+                ORDER BY r.ID
+            """, (evaluacion_id,))
+            respuestas = cursor.fetchall()
+            
+        except Exception as e:
+            flash(f'Error cargando respuestas: {e}')
+        finally:
+            conn.close()
+    
+    return render_template('ver_mis_respuestas.html', respuestas=respuestas, evaluacion=evaluacion_info)
+
 @app.route('/menu')
 def menu():
     """Menú principal después del login"""
