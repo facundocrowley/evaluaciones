@@ -20,16 +20,21 @@ DB_CONFIG = {
 
 def get_db_connection():
     """Crear conexión a la base de datos"""
+    EntornoPrueba=1
+    
     try:
+        
         conn_str = (
             f"DRIVER={{{DB_CONFIG['driver']}}};"
             f"SERVER={DB_CONFIG['server']};"
             f"DATABASE={DB_CONFIG['database']};"
             f"UID={DB_CONFIG['username']};"
             f"PWD={DB_CONFIG['password']};"
-            "Encrypt=yes;"
-            "TrustServerCertificate=yes;"
+            
         )
+        if EntornoPrueba==0:
+            conn_str =+ "Encrypt=yes;TrustServerCertificate=yes;"
+            print(conn_str)
         conn = pyodbc.connect(conn_str)
         return conn
     except Exception as e:
@@ -259,14 +264,14 @@ def guardar_evaluacion():
             # Guardar respuestas asociadas a la evaluación
             for key in request.form:
                 if key.startswith('pregunta_'):
-                    pregunta_id = key.split('_')[1]
-                    respuesta_id = request.form[key] if request.form[key] else 0
+                    pregunta_id = int(key.split('_')[1])
+                    respuesta_id = int(request.form[key]) if request.form[key] else 0
                     detalle = request.form.get(f'detalle_{pregunta_id}', '')
                     
                     cursor.execute("""
-                        INSERT INTO Respuestas (Evaluacion, Respuesta, Usuario, Detalle)
-                        VALUES (?, ?, ?, ?)
-                    """, (evaluacion_id, respuesta_id, session['user_id'], detalle))
+                        INSERT INTO Respuestas (Evaluacion, Respuesta, Usuario, Detalle, Pregunta)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (evaluacion_id, respuesta_id, session['user_id'], detalle, pregunta_id))
             
             conn.commit()
             flash('Evaluación guardada correctamente')
@@ -396,54 +401,23 @@ def admin_ver_respuestas(evaluacion_id):
             """, (evaluacion_id,))
             evaluacion_info = cursor.fetchone()
             
-            # Obtener todas las respuestas de esta evaluación
+            # Obtener todas las respuestas de esta evaluación con JOIN directo
             cursor.execute("""
-                SELECT r.ID, r.Respuesta, r.Detalle
+                SELECT 
+                    r.ID,
+                    p.Detalle as Pregunta,
+                    pr.Respuesta as OpcionElegida,
+                    r.Detalle as ComentarioUsuario,
+                    p.ID as PreguntaID,
+                    (SELECT MAX(orden) FROM PreguntasRespuestas WHERE Pregunta = p.ID) as OrdenCorrecto,
+                    pr.orden as OrdenElegido
                 FROM Respuestas r
+                INNER JOIN Preguntas p ON r.Pregunta = p.ID
+                LEFT JOIN PreguntasRespuestas pr ON r.Respuesta = pr.ID
                 WHERE r.Evaluacion = ?
                 ORDER BY r.ID
             """, (evaluacion_id,))
-            respuestas_raw = cursor.fetchall()
-            
-            respuestas = []
-            for resp in respuestas_raw:
-                respuesta_id = resp[0]
-                respuesta_opcion_id = resp[1]
-                comentario_usuario = resp[2]
-                
-                if respuesta_opcion_id == 0:
-                    # Respuesta inválida
-                    respuestas.append((
-                        respuesta_id,           # ID respuesta
-                        "Pregunta sin identificar",  # Pregunta
-                        "RESPUESTA INVÁLIDA",   # Opción elegida
-                        comentario_usuario,     # Comentarios del usuario
-                        0,                      # PreguntaID
-                        0,                      # OrdenCorrecto
-                        0                       # OrdenElegido
-                    ))
-                else:
-                    # Respuesta válida - obtener información completa
-                    cursor.execute("""
-                        SELECT p.Detalle as Pregunta, pr.Respuesta as OpcionElegida, p.ID as PreguntaID,
-                               (SELECT MAX(orden) FROM PreguntasRespuestas WHERE Pregunta = p.ID) as OrdenCorrecto,
-                               pr.orden as OrdenElegido
-                        FROM PreguntasRespuestas pr
-                        INNER JOIN Preguntas p ON pr.Pregunta = p.ID
-                        WHERE pr.ID = ?
-                    """, (respuesta_opcion_id,))
-                    datos_pregunta = cursor.fetchone()
-                    
-                    if datos_pregunta:
-                        respuestas.append((
-                            respuesta_id,
-                            datos_pregunta[0],      # Pregunta
-                            datos_pregunta[1],      # OpcionElegida
-                            comentario_usuario,     # Comentarios del usuario
-                            datos_pregunta[2],      # PreguntaID
-                            datos_pregunta[3],      # OrdenCorrecto
-                            datos_pregunta[4]       # OrdenElegido
-                        ))
+            respuestas = cursor.fetchall()
             
         except Exception as e:
             flash(f'Error cargando respuestas: {e}')

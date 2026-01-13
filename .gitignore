@@ -1,0 +1,23 @@
+# PyInstaller
+build/
+dist/
+*.spec
+kali.ico
+version.txt
+
+# Instalador
+instalador/
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtualenv
+venv/
+.venv/
+
+# Logs
+*.log
+
+# Ejecutables
+*.exe

@@ -42,10 +42,39 @@
                 <h4>Evaluaciones por Usuario y Tema</h4>
                 <small class="text-muted">Cada línea representa una evaluación individual. Fórmula: 10 × (Respuestas Correctas ÷ Total Preguntas del Tema)</small>
             </div>
-            <div class="card-body">
+                        <div class="card-body">
                 {% if evaluaciones %}
+                    <!-- Filtros personalizados -->
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Filtrar por Usuario:</label>
+                            <select id="filtroUsuario" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Filtrar por Tema:</label>
+                            <select id="filtroTema" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Filtrar por Estado:</label>
+                            <select id="filtroEstado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="Aprobado">Aprobado</option>
+                                <option value="Regular">Regular</option>
+                                <option value="Reprobado">Reprobado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Buscar:</label>
+                            <input type="text" id="busquedaGlobal" class="form-control form-control-sm" placeholder="Buscar en toda la tabla...">
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                        <table id="tablaEvaluaciones" class="table table-striped table-hover table-sm">
                             <thead>
                                 <tr>
                                     <th>Usuario</th>
@@ -64,13 +93,11 @@
                                 <tr>
                                     <td>
                                         <strong>{{ evaluacion[2] }}</strong>
-                                        
                                     </td>
                                     <td>
                                         <span class="badge bg-secondary">{{ evaluacion[4] }}</span>
-                                        
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center" data-order="{{ evaluacion[5].strftime('%Y%m%d%H%M') if evaluacion[5] else '0' }}">
                                         <small>{{ evaluacion[5].strftime('%d/%m/%Y %H:%M') if evaluacion[5] else 'N/A' }}</small>
                                     </td>
                                     <td class="text-center">
@@ -79,7 +106,7 @@
                                     <td class="text-center">
                                         <span class="badge bg-success">{{ evaluacion[10] }}</span>
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center" data-order="{{ evaluacion[6] }}">
                                         <h5>
                                             <span class="badge 
                                                 {% if evaluacion[6] >= evaluacion[7] %}bg-success
@@ -114,7 +141,7 @@
                                     <td class="text-center">
                                         <a href="{{ url_for('admin_ver_respuestas', evaluacion_id=evaluacion[0]) }}" 
                                            class="btn btn-primary btn-sm" title="Ver Respuestas Detalladas">
-                                            <i class="bi bi-eye"></i> Ver Respuestas
+                                            <i class="bi bi-eye"></i> Ver
                                         </a>
                                     </td>
                                 </tr>
@@ -186,23 +213,93 @@
 </div>
 
 {% block scripts %}
+<!-- DataTables CSS y JS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+
 <script>
-// Auto-resize textareas
-document.addEventListener('DOMContentLoaded', function() {
-    const textareas = document.querySelectorAll('textarea[name="observacion"]');
-    textareas.forEach(textarea => {
-        // Auto-resize función
-        function autoResize() {
-            textarea.style.height = 'auto';
-            textarea.style.height = textarea.scrollHeight + 'px';
+$(document).ready(function() {
+    // Destruir si ya existe
+        if ($.fn.DataTable.isDataTable('#tablaEvaluaciones')) {
+            $('#tablaEvaluaciones').DataTable().destroy();
         }
-        
-        textarea.addEventListener('input', autoResize);
-        textarea.addEventListener('focus', autoResize);
-        
-        // Resize inicial
-        autoResize();
+
+    // Inicializar DataTable
+    var table = $('#tablaEvaluaciones').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json"
+        },
+        "pageLength": 25,
+        "order": [[2, "desc"]], // Ordenar por fecha descendente por defecto
+        "columnDefs": [
+            { "orderable": false, "targets": [7, 8] }, // Deshabilitar orden en Observación y Acciones
+        ],
+        "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"p>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        "drawCallback": function() {
+            // Reinicializar auto-resize de textareas después de cada redibujado
+            initTextareas();
+        }
     });
+
+    // Llenar filtros con valores únicos
+    var usuarios = [];
+    var temas = [];
+    
+    table.column(0).data().unique().sort().each(function(d) {
+        var texto = $(d).text().trim();
+        if (texto && !usuarios.includes(texto)) {
+            usuarios.push(texto);
+            $('#filtroUsuario').append('<option value="' + texto + '">' + texto + '</option>');
+        }
+    });
+    
+    table.column(1).data().unique().sort().each(function(d) {
+        var texto = $(d).text().trim();
+        if (texto && !temas.includes(texto)) {
+            temas.push(texto);
+            $('#filtroTema').append('<option value="' + texto + '">' + texto + '</option>');
+        }
+    });
+
+    // Filtro por Usuario
+    $('#filtroUsuario').on('change', function() {
+        table.column(0).search(this.value).draw();
+    });
+
+    // Filtro por Tema
+    $('#filtroTema').on('change', function() {
+        table.column(1).search(this.value).draw();
+    });
+
+    // Filtro por Estado
+    $('#filtroEstado').on('change', function() {
+        table.column(6).search(this.value).draw();
+    });
+
+    // Búsqueda global
+    $('#busquedaGlobal').on('keyup', function() {
+        table.search(this.value).draw();
+    });
+
+    // Auto-resize textareas
+    function initTextareas() {
+        const textareas = document.querySelectorAll('textarea[name="observacion"]');
+        textareas.forEach(textarea => {
+            function autoResize() {
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            }
+            
+            textarea.addEventListener('input', autoResize);
+            textarea.addEventListener('focus', autoResize);
+            autoResize();
+        });
+    }
+    
+    // Inicializar textareas al cargar
+    initTextareas();
 });
 </script>
 {% endblock %}
